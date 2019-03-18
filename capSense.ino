@@ -1,6 +1,6 @@
 #include <EnableInterrupt.h>
-
 #include <CapacitiveSensor.h>
+#include <TimerOne.h>
 
 /*
  * CapitiveSense Library Demo Sketch
@@ -19,11 +19,17 @@
 
 
 CapacitiveSensor cs_4_2 = CapacitiveSensor(4, 2); // 2M between pins, Pin 2 is sensing.
-unsigned int usDelay = 4000;
-bool fadeDirection = FADE_UP;
+unsigned int gateDelay = 0;
+char fadeDirection = FADE_UP;
+static long lastSync = 0;
+static long syncTime = 0;
+static long timerSync = 0;
+static long lastTimerSync = 0;
+static char timerInterruptSkip = 0;
 
 void setup()
 {
+
 
     pinMode(DIMMER_GATE_pin, OUTPUT);
     digitalWrite(DIMMER_GATE_pin, LOW);
@@ -31,35 +37,40 @@ void setup()
     cs_4_2.set_CS_AutocaL_Millis(0xFFFFFFFF); // Autocal period. setting to 0xFFFFFFFF turns it off.
     cs_4_2.set_CS_Timeout_Millis(2000);
     // cs_4_2.reset_CS_AutoCal(); // This can be used to force calibrate capsense function
-
     enableInterrupt(3, syncInterrupt, RISING);
+
+    //delay(100);
+    //while (syncTime == 0);  //wait until we have a sync time
+
+    Timer1.initialize(gateDelay);
+    //Timer1.attachInterrupt(timerInterrupt); // attach t1 interrupt to function
 
     Serial.begin(115200);
 }
 
 void loop()
 {
-    // long start = millis();
+    long start = millis();
     long total1 = cs_4_2.capacitiveSensor(30); 
-    // Serial.print(millis() - start); // check on performance in milliseconds
-    // Serial.print("\t");             // tab character for debug window spacing
-    Serial.println(usDelay);        // print sensor output 1
+    Serial.print(millis() - start); // check on performance in milliseconds
+    Serial.print("\t");             // tab character for debug window spacing
+    Serial.println(gateDelay);        // print sensor output 1
 
     if ((unsigned int)total1 > CAPSENSE_THRESHOLD) 
     {
         switch (fadeDirection)
         {
             case FADE_UP:
-            usDelay += 100;
-            if (usDelay > 8500) 
+            gateDelay += 50;    // change this to a fade resolution #define
+            if (gateDelay > syncTime-800)   //syncTime is measured based on mains freq, darkest light level. subtract 800us to defo prevent glitching. #define this val
             {
                 fadeDirection = FADE_DOWN;
             }  
             break;
 
             case FADE_DOWN:
-            usDelay -= 100;
-            if (usDelay < 4000)
+            gateDelay -= 50;
+            if (gateDelay < 4000)   // this 4000 defines max brightness.
             {
                 fadeDirection = FADE_UP;
             }
@@ -69,14 +80,46 @@ void loop()
 }
 
 void syncInterrupt(void){
-    // static long oldTime = millis();
-    // Serial.print("We've interrupted baby!");
-    // Serial.print("\t");
-    // Serial.print("Time between interrupts: ");
-    // Serial.println(millis()-oldTime);
-    // oldTime = millis();
+    static char binSomeOff = 0;
+    if (binSomeOff < 100) // bin a few off to get a good reading
+    {
+        syncTime = micros() - lastSync;
+        lastSync = micros();
+        gateDelay = syncTime-800; // keep doing this til we don't run this func amymore, to dim the light to a max level. #define the 800us as it's used in other places.
+        binSomeOff++;
+    }
+    else 
+    {
+        Timer1.attachInterrupt(timerInterrupt); // attach t1 interrupt to function. put a small state machine here and do this in the middle. do this here so fnctn doesn't trigger at start
+        //noInterrupts();
+        Timer1.setPeriod(gateDelay); //Timer1.start(); // restart timer1 from 0.
+        Timer1.restart();
+        timerInterruptSkip = 1;
+        //interrupts();
+    }
+    //delayMicroseconds(gateDelay);             //accurate delay. TODO: this delay slows the whole loop down, can we use internal interrupts to time this without locking up the loop?
+}
 
-    delayMicroseconds(usDelay);             //accurate delay. TODO: this delay slows the whole loop down, can we use internal interrupts to time this without locking up the loop?
-    digitalWrite(DIMMER_GATE_pin, HIGH);    //could use direct port manipulation but timing will be fine with 50/60Hz mains
-    digitalWrite(DIMMER_GATE_pin, LOW);
+void timerInterrupt(void) {
+    
+    noInterrupts();
+
+    // Timer1.restart(); causes an interrupt to happen that we don't want to trigger on...
+    // so for now, bin off 1 / 2 interrupts
+
+    if (timerInterruptSkip == 0)
+    {
+        digitalWrite(DIMMER_GATE_pin, HIGH); //could use direct port manipulation but timing will be fine with 50/60Hz mains
+        delayMicroseconds(200);
+        digitalWrite(DIMMER_GATE_pin, LOW);
+
+        Timer1.stop(); //always stop the timer after a successful trigger
+    }
+    else
+    {
+        // literally do FA
+        timerInterruptSkip = 0;
+    }
+
+    interrupts();
 }

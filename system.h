@@ -8,6 +8,7 @@
 #define SYSTEM_H
 
 #include <stdint.h>
+#include <Arduino.h>
 
 #define DIMMER_GATE_pin 5
 #define FADE_UP 0

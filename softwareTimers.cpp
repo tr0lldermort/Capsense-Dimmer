@@ -6,25 +6,22 @@
 
 #include "softwareTimers.h"
 
-softwareTimer::softwareTimer(uint8_t* timerId)
+softwareTimer::softwareTimer()
 {
-    static uint8_t myTimerId = 0; // tracks the number of software timers being used
-    myTimerId++; // increment the number
-    //initSoftwareTimer(&myTimerId);
-    *timerId = myTimerId;
+    Serial.print("Constructor Time... ");
+    Serial.println(millis());
     return;
 }
 
-// void initSoftwareTimer(uint8_t* myTimerId)
-// {
-//     //probably make this function private
-//     //make a software timer that will respond to the id passed here
-// }
-
-void softwareTimer::startSoftwareTimer(uint8_t timerId, unsigned int durationMillis)
+void softwareTimer::startTimer(uint8_t* timerId, unsigned int durationMillis)
 {
-    static unsigned long _timerEndings[0xFF];
-    _timerEndings[timerId] = millis() + durationMillis;
+    static uint8_t myTimerId = 0; // tracks the number of software timers being used
+    myTimerId++;                  // increment the number
+    //initSoftwareTimer(&myTimerId);
+    *timerId = myTimerId;
+
+    //static unsigned long _timerEndings[0xFF];
+    _timerEndings[myTimerId] = millis() + durationMillis;
 }
 
 bool softwareTimer::checkTimer(uint8_t timerId)

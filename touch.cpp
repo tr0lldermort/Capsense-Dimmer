@@ -8,26 +8,46 @@
 void touchDetect(long touchVal)
 {
     static char touchState = 0;
+    static unsigned char swTimer1, swTimer2, swTimer3;
+    static softwareTimer softwareTimer_c;
 
-    if ((unsigned int)touchVal > CAPSENSE_THRESHOLD)
+    switch (touchState)
     {
-        switch (touchState)
+        case 0:
+        if ((unsigned int)touchVal > CAPSENSE_THRESHOLD)    // if we detect a touch, start the timer and go to next step after debounce
         {
-            case 0:
-            break;
-
-            case 1:
-            break;
-
-            case 2:
-            break;
-
-            case 3:
-            break;
-
-            case 4:
-            break;
-            
+            softwareTimer_c.startTimer(&swTimer1, 500); //debounce timer
+         touchState++;
         }
+        else
+        {
+            //stop timer
+        }
+        
+        
+        
+
+        break;
+
+
+
+        case 1:
+            if (softwareTimer_c.checkTimer(swTimer1))
+            {
+                Serial.println("poo face");
+                touchState=0;
+            }
+            break;
+
+        case 2:
+        break;
+
+        case 3:
+        break;
+
+        case 4:
+        break;
+        
     }
+
 }

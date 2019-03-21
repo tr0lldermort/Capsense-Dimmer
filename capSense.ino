@@ -53,9 +53,9 @@ void loop()
 {
     long start = millis();
     long total1 = cs_4_2.capacitiveSensor(30); 
-    Serial.print(millis() - start); // check on performance in milliseconds
-    Serial.print("\t");             // tab character for debug window spacing
-    Serial.println(gateDelay);        // print sensor output 1
+    // Serial.print(millis() - start); // check on performance in milliseconds
+    // Serial.print("\t");             // tab character for debug window spacing
+    // Serial.println(gateDelay);        // print sensor output 1
 
     touchDetect(total1);
 

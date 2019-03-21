@@ -2,6 +2,9 @@
 #include <CapacitiveSensor.h>
 #include <TimerOne.h>
 
+#include "touch.h"
+#include "system.h"
+
 /*
  * CapitiveSense Library Demo Sketch
  * Paul Badger 2008
@@ -11,11 +14,7 @@
  * Best results are obtained if sensor foil and wire is covered with an insulator such as paper or plastic sheet
  */
 
-#define DIMMER_GATE_pin 5
-#define FADE_UP 0
-#define FADE_DOWN 1
 
-#define CAPSENSE_THRESHOLD 2000
 
 
 CapacitiveSensor cs_4_2 = CapacitiveSensor(4, 2); // 2M between pins, Pin 2 is sensing.
@@ -43,9 +42,11 @@ void setup()
     //while (syncTime == 0);  //wait until we have a sync time
 
     Timer1.initialize(gateDelay);
-    //Timer1.attachInterrupt(timerInterrupt); // attach t1 interrupt to function
+    //Timer1.attachInterrupt(timer1Interrupt); // attach t1 interrupt to function
 
     Serial.begin(115200);
+
+    
 }
 
 void loop()
@@ -56,30 +57,34 @@ void loop()
     Serial.print("\t");             // tab character for debug window spacing
     Serial.println(gateDelay);        // print sensor output 1
 
-    if ((unsigned int)total1 > CAPSENSE_THRESHOLD) 
-    {
-        switch (fadeDirection)
-        {
-            case FADE_UP:
-            gateDelay += 50;    // change this to a fade resolution #define
-            if (gateDelay > syncTime-800)   //syncTime is measured based on mains freq, darkest light level. subtract 800us to defo prevent glitching. #define this val
-            {
-                fadeDirection = FADE_DOWN;
-            }  
-            break;
+    touchDetect(total1);
 
-            case FADE_DOWN:
-            gateDelay -= 50;
-            if (gateDelay < 4000)   // this 4000 defines max brightness.
-            {
-                fadeDirection = FADE_UP;
-            }
-            break;
-        }
-    }
+
+    // if ((unsigned int)total1 > CAPSENSE_THRESHOLD)
+    // {
+    //     switch (fadeDirection)
+    //     {
+    //     case FADE_UP:
+    //     gateDelay += 50;    // change this to a fade resolution #define
+    //     if (gateDelay > syncTime-800)   //syncTime is measured based on mains freq, darkest light level. subtract 800us to defo prevent glitching. #define this val
+    //     {
+    //         fadeDirection = FADE_DOWN;
+    //     }  
+    //     break;
+
+    //     case FADE_DOWN:
+    //     gateDelay -= 50;
+    //     if (gateDelay < 4000)   // this 4000 defines max brightness.
+    //     {
+    //         fadeDirection = FADE_UP;
+    //     }
+    //     break;
+    // }
+    //}
 }
 
-void syncInterrupt(void){
+void syncInterrupt(void)
+{
     static char binSomeOff = 0;
     if (binSomeOff < 100) // bin a few off to get a good reading
     {
@@ -90,7 +95,7 @@ void syncInterrupt(void){
     }
     else 
     {
-        Timer1.attachInterrupt(timerInterrupt); // attach t1 interrupt to function. put a small state machine here and do this in the middle. do this here so fnctn doesn't trigger at start
+        Timer1.attachInterrupt(timer1Interrupt); // attach t1 interrupt to function. put a small state machine here and do this in the middle. do this here so fnctn doesn't trigger at start
         //noInterrupts();
         Timer1.setPeriod(gateDelay); //Timer1.start(); // restart timer1 from 0.
         Timer1.restart();
@@ -100,7 +105,8 @@ void syncInterrupt(void){
     //delayMicroseconds(gateDelay);             //accurate delay. TODO: this delay slows the whole loop down, can we use internal interrupts to time this without locking up the loop?
 }
 
-void timerInterrupt(void) {
+void timer1Interrupt(void) 
+{
     
     noInterrupts();
 
@@ -110,16 +116,21 @@ void timerInterrupt(void) {
     if (timerInterruptSkip == 0)
     {
         digitalWrite(DIMMER_GATE_pin, HIGH); //could use direct port manipulation but timing will be fine with 50/60Hz mains
-        delayMicroseconds(200);
+        delayMicroseconds(200); // short pulse to the triac to make sure it triggers
         digitalWrite(DIMMER_GATE_pin, LOW);
 
         Timer1.stop(); //always stop the timer after a successful trigger
     }
     else
     {
-        // literally do FA
+        // literally do FA to skip over the unwated initial interrupt when Timer1.restart() is called.
         timerInterruptSkip = 0;
     }
 
     interrupts();
+}
+
+void timer2Interrupt(void)
+{
+    //do gateDelay adjustments here in a regular fashon
 }

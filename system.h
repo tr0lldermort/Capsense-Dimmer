@@ -14,6 +14,8 @@
 #define FADE_UP 0
 #define FADE_DOWN 1
 
+#define DEBUG
+
 #define CAPSENSE_THRESHOLD 2000
 
 extern unsigned int gateDelay;

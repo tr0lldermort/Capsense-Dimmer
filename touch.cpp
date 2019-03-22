@@ -12,13 +12,9 @@ LIGHTSTATE lightState;
 void touchDetect(long touchVal)
 {
     static softwareTimer softwareTimer_c;
-
     static char touchState = 0, tapTimeoutState = 0;
-
     static unsigned char deBounceTimer, tapTimer, tapTimeout, fadeInterval;
-
     static char tapCount = 0;
-
 
     if ((unsigned int)touchVal < CAPSENSE_THRESHOLD) // timeout for tap.
     {
@@ -27,7 +23,7 @@ void touchDetect(long touchVal)
         case 0:
             if (tapCount > 0)
             {
-                softwareTimer_c.startTimer(&tapTimeout, 99999); //300); //debounce timer start
+                softwareTimer_c.startTimer(&tapTimeout, 300); //300); //debounce timer start
                 tapTimeoutState++;
                 Serial.println("timeout begun");
             }
@@ -45,8 +41,6 @@ void touchDetect(long touchVal)
     }
         
 
-
-
     switch (touchState)
     {
         case 0:
@@ -58,7 +52,6 @@ void touchDetect(long touchVal)
         }
         break;
 
-
         case 1:
         if ((unsigned int)touchVal > CAPSENSE_THRESHOLD)
         {
@@ -69,13 +62,14 @@ void touchDetect(long touchVal)
             }
             else Serial.println("timer not elapsed");
 
-        } else {
+        } 
+        else 
+        {
             touchState = 0; // go back home if touch stops
             tapCount = 0; // wipe the taps too
             Serial.println("cya");
         }
         break;
-
 
         case 2: // now figure out if this is as tap or a hold using a tap duration timer
         // if release within tap duratino timer, it's a tap. go to tap behaviour
@@ -83,7 +77,6 @@ void touchDetect(long touchVal)
         softwareTimer_c.startTimer(&tapTimer, 200); //tap timer start
         touchState++;
         break;
-
 
         case 3:
         if ((unsigned int)touchVal > CAPSENSE_THRESHOLD)
@@ -121,9 +114,7 @@ void touchDetect(long touchVal)
                     lightState.brightness = 0;
                     Serial.println("disable with 0 brightness");
                 }
-
                 //end of state go to beginning
-
                 tapCount = 0;
                 touchState = 0;
                 break;
@@ -135,7 +126,6 @@ void touchDetect(long touchVal)
         case 4: // we're fading, do this here
         // check we're at tapCount 1 or ignore input
         {   //scoping for defines
-
             static char fadeInhibit = 0;
 
             if (tapCount != 1)
@@ -144,11 +134,10 @@ void touchDetect(long touchVal)
                 touchState = 0;
                 break;
             }
-
             if ((unsigned int)touchVal > CAPSENSE_THRESHOLD) // make sure we're still holding the input
             {
-
-                if(lightState.brightness == 100)
+                // these tests/direction changes actually cause light to fade up and down automatically by holding on
+                if (lightState.brightness >= MAX_BRIGHTNESS)
                     lightState.fadeDirection = DIR_DOWN;
                 if (lightState.brightness <= MIN_BRIGHTNESS)
                     lightState.fadeDirection = DIR_UP;
@@ -159,10 +148,9 @@ void touchDetect(long touchVal)
                     {
                         if (lightState.en == 0)
                             lightState.en = 1;
-                        Serial.print("Fading up. Brightness: ");
+                        //Serial.print("Fading up. Brightness: ");
                         lightState.brightness += 1;
-                        
-                        softwareTimer_c.startTimer(&fadeInterval, 1);
+                        //softwareTimer_c.startTimer(&fadeInterval, 1);
                         fadeInhibit = 1;
                     }
                 }
@@ -170,24 +158,18 @@ void touchDetect(long touchVal)
                 {
                     if (!fadeInhibit)
                     {
-                        Serial.print("Fading down. Brightness: ");
+                        //Serial.print("Fading down. Brightness: ");
                         lightState.brightness -= 1;
-
-                        softwareTimer_c.startTimer(&fadeInterval, 1);
+                        //softwareTimer_c.startTimer(&fadeInterval, 1);
                         fadeInhibit = 1;
                     }
                 }
 
-                if (lightState.brightness > 100)
-                    lightState.brightness = 100;
+                if (lightState.brightness > MAX_BRIGHTNESS)
+                    lightState.brightness = MAX_BRIGHTNESS;
                 if (lightState.brightness < MIN_BRIGHTNESS)
-                {
-
                     lightState.brightness = MIN_BRIGHTNESS;
-                    //lightState.en = 0;
-                }
-
-                Serial.println(lightState.brightness);
+                //Serial.println(lightState.brightness);
             }
             else
             {
@@ -195,7 +177,6 @@ void touchDetect(long touchVal)
                 touchState = 0;
                 tapCount = 0;
             }
-
             if (fadeInhibit)    //this is the delay timer checker
                 if(softwareTimer_c.checkTimer(&fadeInterval))
                     fadeInhibit = 0;

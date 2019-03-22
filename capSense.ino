@@ -37,24 +37,12 @@ void setup()
     // cs_4_2.reset_CS_AutoCal(); // This can be used to force calibrate capsense function
     enableInterrupt(3, syncInterrupt, RISING);
 
-    //delay(100);
-    //while (syncTime == 0);  //wait until we have a sync time
-
     Timer1.initialize(gateDelay);
-    //Timer1.attachInterrupt(timer1Interrupt); // attach t1 interrupt to function
 
     lightState.en = 0;
     lightState.fadeDirection = FADE_UP;
     lightState.brightness = 0;
-
 }
-
-
-
-
-
-
-
 
 
 
@@ -63,17 +51,9 @@ void loop()
 {
     long senseVal = 0;
 
-
     senseVal = cs_4_2.capacitiveSensor(30); 
 
     touchDetect(senseVal);
-
-    // //calculate gateDelay based on brightness
-    // if(lightState.brightness == 0)
-    //     gateDelay = syncTime - 800;
-
-    // if (lightState.brightness == 100)
-    //     gateDelay = 100;
 
     gateDelay = ((100 - lightState.brightness) * syncTime) / 100;
     if (gateDelay < 100)
@@ -81,29 +61,6 @@ void loop()
     if (gateDelay > syncTime - 500)
         gateDelay = syncTime - 500;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -120,24 +77,20 @@ void syncInterrupt(void)
     else 
     {
         Timer1.attachInterrupt(timer1Interrupt); // attach t1 interrupt to function. put a small state machine here and do this in the middle. do this here so fnctn doesn't trigger at start
-        //noInterrupts();
         Timer1.setPeriod(gateDelay); //Timer1.start(); // restart timer1 from 0.
         Timer1.restart();
         timerInterruptSkip = 1;
-        //interrupts();
     }
 }
 
 
-
+//TODO: glitch when near max brightness. looks like two gate pulses are being generated.
 void timer1Interrupt(void) // this function gets called at the right time, depending on ligfhtState.brightness level.
 {
-    
     //noInterrupts();
 
     // Timer1.restart(); causes an interrupt to happen that we don't want to trigger on...
     // so for now, bin off 1 / 2 interrupts
-
     if (timerInterruptSkip == 0)
     {
         if(lightState.en == 1)
@@ -150,7 +103,6 @@ void timer1Interrupt(void) // this function gets called at the right time, depen
         {
             digitalWrite(DIMMER_GATE_pin, LOW); // off
         }
-
         Timer1.stop(); //always stop the timer after a successful trigger
     }
     else
@@ -158,7 +110,6 @@ void timer1Interrupt(void) // this function gets called at the right time, depen
         // literally do FA to skip over the unwated initial interrupt when Timer1.restart() is called.
         timerInterruptSkip = 0;
     }
-
     //interrupts();
 }
 

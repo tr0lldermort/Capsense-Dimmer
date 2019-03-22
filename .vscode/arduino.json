@@ -2,5 +2,5 @@
     "sketch": "capSense.ino",
     "board": "arduino:avr:nano",
     "configuration": "cpu=atmega328old",
-    "port": "/dev/ttyUSB0"
+    "port": "/dev/ttyUSB1"
 }

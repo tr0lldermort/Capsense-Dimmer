@@ -8,7 +8,8 @@
 #define DIR_UP 0
 #define DIR_DOWN 1
 
-#define MIN_BRIGHTNESS 25
+#define MIN_BRIGHTNESS 10
+#define MAX_BRIGHTNESS 90
 
 void touchDetect(long touchVal);
 

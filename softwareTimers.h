@@ -14,7 +14,7 @@ class softwareTimer
   public:             //funcs and vars that can be accessed from outside the instance of class
     softwareTimer(); // constructor, used to create an instance of this class. no return type, must match name of class, called once per instance of class.
     void startTimer(uint8_t* timerId, unsigned int durationMillis);
-    bool checkTimer(uint8_t timerId);
+    bool checkTimer(uint8_t* timerId);
 
     private:
     //void initSoftwareTimer(uint8_t* myTimerId);

@@ -16,17 +16,19 @@ softwareTimer::softwareTimer()
 void softwareTimer::startTimer(uint8_t* timerId, unsigned int durationMillis)
 {
     static uint8_t myTimerId = 0; // tracks the number of software timers being used
-    myTimerId++;                  // increment the number
+    if(myTimerId == 254) //TODO: microcontroller crashes if this rolls over wtf
+        myTimerId = 0;
+    myTimerId++; // increment the number
     //initSoftwareTimer(&myTimerId);
     *timerId = myTimerId;
 
     //static unsigned long _timerEndings[0xFF];
-    _timerEndings[myTimerId] = millis() + durationMillis;
+    _timerEndings[myTimerId] = millis() + durationMillis;   // TODO: millis will also rollover lolz
 }
 
-bool softwareTimer::checkTimer(uint8_t timerId)
+bool softwareTimer::checkTimer(uint8_t* timerId)
 {
-    if (millis() < _timerEndings[timerId])
+    if (millis() < _timerEndings[*timerId])
     {
         return 0;
     }

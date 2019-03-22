@@ -15,8 +15,6 @@
  */
 
 
-
-
 CapacitiveSensor cs_4_2 = CapacitiveSensor(4, 2); // 2M between pins, Pin 2 is sensing.
 unsigned int gateDelay = 0;
 char fadeDirection = FADE_UP;
@@ -25,10 +23,11 @@ static long syncTime = 0;
 static long timerSync = 0;
 static long lastTimerSync = 0;
 static char timerInterruptSkip = 0;
+char getSamp = 0;
 
 void setup()
 {
-
+    Serial.begin(115200);
 
     pinMode(DIMMER_GATE_pin, OUTPUT);
     digitalWrite(DIMMER_GATE_pin, LOW);
@@ -44,44 +43,69 @@ void setup()
     Timer1.initialize(gateDelay);
     //Timer1.attachInterrupt(timer1Interrupt); // attach t1 interrupt to function
 
-    Serial.begin(115200);
+    lightState.en = 0;
+    lightState.fadeDirection = FADE_UP;
+    lightState.brightness = 0;
 
-    
 }
+
+
+
+
+
+
+
+
+
+
 
 void loop()
 {
-    long start = millis();
-    long total1 = cs_4_2.capacitiveSensor(30); 
-    // Serial.print(millis() - start); // check on performance in milliseconds
-    // Serial.print("\t");             // tab character for debug window spacing
-    // Serial.println(gateDelay);        // print sensor output 1
-
-    touchDetect(total1);
+    long senseVal = 0;
 
 
-    // if ((unsigned int)total1 > CAPSENSE_THRESHOLD)
-    // {
-    //     switch (fadeDirection)
-    //     {
-    //     case FADE_UP:
-    //     gateDelay += 50;    // change this to a fade resolution #define
-    //     if (gateDelay > syncTime-800)   //syncTime is measured based on mains freq, darkest light level. subtract 800us to defo prevent glitching. #define this val
-    //     {
-    //         fadeDirection = FADE_DOWN;
-    //     }  
-    //     break;
+    senseVal = cs_4_2.capacitiveSensor(30); 
 
-    //     case FADE_DOWN:
-    //     gateDelay -= 50;
-    //     if (gateDelay < 4000)   // this 4000 defines max brightness.
-    //     {
-    //         fadeDirection = FADE_UP;
-    //     }
-    //     break;
-    // }
-    //}
+    touchDetect(senseVal);
+
+    // //calculate gateDelay based on brightness
+    // if(lightState.brightness == 0)
+    //     gateDelay = syncTime - 800;
+
+    // if (lightState.brightness == 100)
+    //     gateDelay = 100;
+
+    gateDelay = ((100 - lightState.brightness) * syncTime) / 100;
+    if (gateDelay < 100)
+        gateDelay = 100;
+    if (gateDelay > syncTime - 500)
+        gateDelay = syncTime - 500;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void syncInterrupt(void)
 {
@@ -102,22 +126,30 @@ void syncInterrupt(void)
         timerInterruptSkip = 1;
         //interrupts();
     }
-    //delayMicroseconds(gateDelay);             //accurate delay. TODO: this delay slows the whole loop down, can we use internal interrupts to time this without locking up the loop?
 }
 
-void timer1Interrupt(void) 
+
+
+void timer1Interrupt(void) // this function gets called at the right time, depending on ligfhtState.brightness level.
 {
     
-    noInterrupts();
+    //noInterrupts();
 
     // Timer1.restart(); causes an interrupt to happen that we don't want to trigger on...
     // so for now, bin off 1 / 2 interrupts
 
     if (timerInterruptSkip == 0)
     {
-        digitalWrite(DIMMER_GATE_pin, HIGH); //could use direct port manipulation but timing will be fine with 50/60Hz mains
-        delayMicroseconds(200); // short pulse to the triac to make sure it triggers
-        digitalWrite(DIMMER_GATE_pin, LOW);
+        if(lightState.en == 1)
+        {
+            digitalWrite(DIMMER_GATE_pin, HIGH); //could use direct port manipulation but timing will be fine with 50/60Hz mains
+            delayMicroseconds(200);              // short pulse to the triac to make sure it triggers
+            digitalWrite(DIMMER_GATE_pin, LOW);
+        }
+        else
+        {
+            digitalWrite(DIMMER_GATE_pin, LOW); // off
+        }
 
         Timer1.stop(); //always stop the timer after a successful trigger
     }
@@ -127,10 +159,6 @@ void timer1Interrupt(void)
         timerInterruptSkip = 0;
     }
 
-    interrupts();
+    //interrupts();
 }
 
-void timer2Interrupt(void)
-{
-    //do gateDelay adjustments here in a regular fashon
-}

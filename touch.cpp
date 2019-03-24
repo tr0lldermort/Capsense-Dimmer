@@ -86,11 +86,15 @@ void touchDetect(long touchVal)
                 // longer than a tap, do the fading manipulation here
                 Serial.println("fade duration detected");
                 touchState++;
+                //putting a second one here to emulate a double tap, as single tap reponses are preferred for flo.
+                tapCount++;
                 break;
             }
         } 
         else 
         {
+            tapCount++;
+            //putting a second one here to emulate a double tap, as single tap reponses are preferred for flo.
             tapCount++;
             Serial.println("tap detected");
             Serial.print("en: ");
